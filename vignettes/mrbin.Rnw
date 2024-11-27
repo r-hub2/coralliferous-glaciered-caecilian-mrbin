@@ -172,6 +172,7 @@ mrbinResults<-mrbin(parameters=list(dimension="1D",
              PQNScaling="No",
              fixNegatives="No",
              logTrafo="No",
+			 useAsNames="Spectrum titles",
              NMRfolders=c(system.file("extdata/1/10/pdata/10",package="mrbin"),
                           system.file("extdata/2/10/pdata/10",package="mrbin"),
                           system.file("extdata/3/10/pdata/10",package="mrbin"))
@@ -193,6 +194,7 @@ mrbinResults<-mrbin(silent=TRUE,#this suppresses all interactive prompts
              PQNScaling="No",
              fixNegatives="No",
              logTrafo="No",
+			 useAsNames="Spectrum titles",
              NMRfolders=c(system.file("extdata/1/10/pdata/10",package="mrbin"),
                           system.file("extdata/2/10/pdata/10",package="mrbin"),
                           system.file("extdata/3/10/pdata/10",package="mrbin"))
@@ -411,6 +413,7 @@ mrbinResults2D<-mrbin(setDefault=TRUE,parameters=list(dimension="2D",
                PQNScaling="No",
                fixNegatives="No",
                logTrafo="No",
+			   useAsNames="Spectrum titles",
                NMRfolders=c(system.file("extdata/1/12/pdata/10",package="mrbin"),
                        system.file("extdata/2/12/pdata/10",package="mrbin"),
                        system.file("extdata/3/12/pdata/10",package="mrbin"))
@@ -431,6 +434,7 @@ mrbinResults2D<-mrbin(silent=TRUE,#this suppresses all interactive prompts
                PQNScaling="No",
                fixNegatives="No",
                logTrafo="No",
+			   useAsNames="Spectrum titles",
                NMRfolders=c(system.file("extdata/1/12/pdata/10",package="mrbin"),
                        system.file("extdata/2/12/pdata/10",package="mrbin"),
                        system.file("extdata/3/12/pdata/10",package="mrbin"))
