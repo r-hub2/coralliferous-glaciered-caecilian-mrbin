@@ -2955,20 +2955,20 @@ setNoiseLevels<-function(mrbinObject,plotOnly=FALSE,
           }
           plotNMR(noise=1.0*mrbinObject$parameters$noise_level_adjusted[1]*signal_to_noise1D,
                 perspective=TRUE,region=mrbinObject$parameters$noisePreviewRegion1D[inoiseRegionTMP,],
-                color="darkseagreen3",manualScale=FALSE,plotTitle=plotTitleTMP1,
+                color="blue",manualScale=FALSE,plotTitle=plotTitleTMP1,
                 currentSpectrumOriginal=mrbin.env$mrbinTMP$currentSpectrumOriginal/
                 mrbin.env$mrbinTMP$scaleFactorTMP1,plotDelay=0)
           plotNMR(noise=1.0*mrbinObject$parameters$noise_level_adjusted[
                 mrbin.env$mrbinTMP$spectrumListPlotTMP[1]]*signal_to_noise1D,
                 perspective=TRUE,region=mrbinObject$parameters$noisePreviewRegion1D[inoiseRegionTMP,],
-                color="darkseagreen3",manualScale=FALSE,plotTitle=plotTitleTMP2,
+                color="blue",manualScale=FALSE,plotTitle=plotTitleTMP2,
                 currentSpectrumOriginal=mrbin.env$mrbinTMP$additionalPlots1D[[1]]/
                 mrbin.env$mrbinTMP$scaleFactorTMP2,plotDelay=0)
           if(length(mrbin.env$mrbinTMP$additionalPlots1D)>1){
             plotNMR(noise=1.0*mrbinObject$parameters$noise_level_adjusted[
                mrbin.env$mrbinTMP$spectrumListPlotTMP[2]]*signal_to_noise1D,
                 perspective=TRUE,region=mrbinObject$parameters$noisePreviewRegion1D[inoiseRegionTMP,],
-                color="darkseagreen3",manualScale=FALSE,plotTitle=plotTitleTMP3,
+                color="blue",manualScale=FALSE,plotTitle=plotTitleTMP3,
                 currentSpectrumOriginal=mrbin.env$mrbinTMP$additionalPlots1D[[2]]/
                 mrbin.env$mrbinTMP$scaleFactorTMP3,plotDelay=0)
           }
@@ -5667,7 +5667,7 @@ plotNMR<-function(region=NULL,rectangleRegions=NULL,
          spectrumTMP2[spectrumTMP2<zlimTMP[1]]<-zlimTMP[1]+0.01*abs(zlimTMP[1])#avoid warning messages
          spectrumTMP2[spectrumTMP2>zlimTMP[2]]<-1.0*zlimTMP[2]#avoid warning messages
          pmat<-graphics::persp(z=t(spectrumTMP2),zlim=zlimTMP,zlab="",shade=.5,#.7,
-                border=NA,col="green3",
+                border=NA,col="deepskyblue2",
                 phi=5,ltheta = -65, lphi = 55,main=plotTitle,#theta=-45,
                 #ticktype="detailed",
                 axes=FALSE)

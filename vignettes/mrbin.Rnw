@@ -3,10 +3,6 @@
 % \VignetteKeyword{NMR}
 % \VignetteKeyword{metabolomics}
 \documentclass{article}
-\renewcommand*\familydefault{\sfdefault}
-\usepackage{graphics}
-\usepackage{amsmath}
-\usepackage[utf8]{inputenc}
 \usepackage{Sweave}
 \addtolength{\topmargin}{-2.1cm}
 \addtolength{\textheight}{3.8cm}%1.4{.793cm}
@@ -695,7 +691,7 @@ is different, the function name has to be provided in the parameter
 functionNamePredict. Please make sure to have loaded all required packages
 before starting fia().\\
 
-As an example, we will a logit model instead of ANN, as ANN training would
+As an example, we will use a logit model instead of ANN, as ANN training would
 require additional programs to be installed.
 
 <<eval=FALSE>>=
