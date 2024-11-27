@@ -24,6 +24,6 @@ Suggests: parallel, keras
 VignetteBuilder: utils
 URL: https://github.com/kleinomicslab/mrbin
 NeedsCompilation: no
-Packaged: 2024-11-27 16:55:50 UTC; Matthias
+Packaged: 2024-11-27 17:01:52 UTC; Matthias
 Author: Matthias Klein [aut, cre] (<https://orcid.org/0000-0001-7455-5381>)
 Maintainer: Matthias Klein <matthias.s.klein@gmx.net>
