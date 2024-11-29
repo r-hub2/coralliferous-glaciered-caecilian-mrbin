@@ -8,7 +8,8 @@ removeSpectrum(
   mrbinResults = NULL,
   spectra = NULL,
   verbose = TRUE,
-  errorsAsWarnings = FALSE
+  errorsAsWarnings = FALSE,
+  graphics = TRUE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ removeSpectrum(
 \item{verbose}{Should a summary be printed?}
 
 \item{errorsAsWarnings}{If TRUE, errors will be turned into warnings. Should be used with care, as errors indicate undocumented changes to the data.}
+
+\item{graphics}{Controls whether pop-up windows are shown for selections. Defaults to TRUE.}
 }
 \value{
 An invisible mrbin object (only if an mrbin object was provided)

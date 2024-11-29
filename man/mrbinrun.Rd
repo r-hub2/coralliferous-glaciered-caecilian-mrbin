@@ -4,7 +4,13 @@
 \alias{mrbinrun}
 \title{A function performing all data read and processing steps.}
 \usage{
-mrbinrun(createbins = TRUE, process = TRUE, mrbinResults = NULL, silent = TRUE)
+mrbinrun(
+  createbins = TRUE,
+  process = TRUE,
+  mrbinResults = NULL,
+  silent = TRUE,
+  graphics = TRUE
+)
 }
 \arguments{
 \item{createbins}{If TRUE, new bin data is generated}
@@ -14,6 +20,8 @@ mrbinrun(createbins = TRUE, process = TRUE, mrbinResults = NULL, silent = TRUE)
 \item{mrbinResults}{An mrbin object. Needs to be provided only if createbins is FALSE}
 
 \item{silent}{If set to FALSE, no new time calculation is performed}
+
+\item{graphics}{Controls whether pop-up windows are shown for selections. Defaults to TRUE.}
 }
 \value{
 An invisible mrbin object

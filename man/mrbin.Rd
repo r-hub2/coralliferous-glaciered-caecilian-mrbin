@@ -4,7 +4,13 @@
 \alias{mrbin}
 \title{A function setting the parameters and performing binning and data processing}
 \usage{
-mrbin(silent = FALSE, setDefault = FALSE, parameters = NULL, metadata = NULL)
+mrbin(
+  silent = FALSE,
+  setDefault = FALSE,
+  parameters = NULL,
+  metadata = NULL,
+  graphics = TRUE
+)
 }
 \arguments{
 \item{silent}{If TRUE, the user will be asked no questions and binning and data analysis will run according to the current parameters. Defaults to FALSE.}
@@ -14,6 +20,8 @@ mrbin(silent = FALSE, setDefault = FALSE, parameters = NULL, metadata = NULL)
 \item{parameters}{Optional: A list of parameters, see examples for details. If omitted, the user will be asked through a series of question to set the parameters.}
 
 \item{metadata}{Optional: A list of metadata. If omitted, the user can add metadata after generating bin data.}
+
+\item{graphics}{Controls whether pop-up windows are shown for selections. Defaults to TRUE.}
 }
 \value{
 An invisible object of type "mrbin" containing bins (data after processing), parameters, and factors

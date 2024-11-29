@@ -4,12 +4,14 @@
 \alias{metadatamrbin}
 \title{A function for interactively editing metadata of mrbin objects.}
 \usage{
-metadatamrbin(mrbinResults, metadata = NULL)
+metadatamrbin(mrbinResults, metadata = NULL, graphics = graphics)
 }
 \arguments{
 \item{mrbinResults}{An mrbin object}
 
 \item{metadata}{An optional list of objects to be changed. If provided, interactive mode is deactivated}
+
+\item{graphics}{Controls whether pop-up windows are shown for selections. Defaults to TRUE.}
 }
 \value{
 An invisible mrbin object

@@ -8,7 +8,8 @@ setNoiseLevels(
   mrbinObject,
   plotOnly = FALSE,
   showSpectrumPreview = NULL,
-  silent = FALSE
+  silent = FALSE,
+  graphics = TRUE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ setNoiseLevels(
 \item{showSpectrumPreview}{Should plots be shown? If not provided, this value will be taken from the mrbin object parameters}
 
 \item{silent}{If set to TRUE, plots will not be shown but might still be saved}
+
+\item{graphics}{Controls whether pop-up windows are shown for selections. Defaults to TRUE.}
 }
 \value{
 An invisible mrbin object

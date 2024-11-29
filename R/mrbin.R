@@ -608,7 +608,7 @@ resetEnv<-function(){
                intensityScale=1,
                intensityScale2D=1,
                intensityOffset=0,
-               nContours=30,#30
+               nContours=24,#30
                heatmap=FALSE),mrbin.env)
 }
 
@@ -622,6 +622,7 @@ resetEnv<-function(){
 #' @param metadata Optional: A list of metadata. If omitted, the user can add metadata after generating bin data.
 #' @param silent If TRUE, the user will be asked no questions and binning and data analysis will run according to the current parameters. Defaults to FALSE.
 #' @param setDefault If TRUE, all current parameters will be replaced by the default parameters (before loading any provided parameters sets). Defaults to FALSE.
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible object of type "mrbin" containing bins (data after processing), parameters, and factors
 #' @export
 #' @examples
@@ -635,7 +636,7 @@ resetEnv<-function(){
 #'                 system.file("extdata/3/10/pdata/10",package="mrbin"))
 #'                 ))
 
-mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
+mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL,graphics= TRUE){
  if(!exists("mrbin.env", mode="environment")) .onLoad()
  if(setDefault) resetEnv()
  if(!is.null(parameters)) setParam(parameters=parameters)
@@ -644,6 +645,11 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
    mrbin.env$mrbin$metadata$factors<-mrbin.env$mrbin$parameters$Factors  #for backward compatibility
    mrbin.env$mrbin$parameters$Factors<-NULL
  }
+ mrbin.env$mrbinTMP$additionalPlots1D<-NULL
+ mrbin.env$mrbinTMP$additionalPlots2D<-NULL
+ mrbin.env$mrbinTMP$additionalPlots1DMetadata<-NULL
+ mrbin.env$mrbinTMP$additionalPlots2DMetadata<-NULL
+ 
  stopTMP<-FALSE
  selectionRepeat<-""
  #if(silent){
@@ -654,10 +660,17 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
   restart<-FALSE
   mrbin.env$mrbin$parameters$warningMessages<-NULL
   if(!silent){
-   if(Sys.info()['sysname']=='Darwin'){#On Apple or Mac computer, display a hint for installing Quartz
+   if(Sys.info()['sysname']=='Darwin'&graphics){#On Apple or Mac computer, display a hint for installing Quartz
      if(mrbin.env$mrbin$parameters$verbose){
        message("Apple users: If you see text prompts but no pop-up windows, install xquartz:\n https://www.xquartz.org")
        utils::flush.console()
+	   selection<-utils::select.list(c("This is a pop-up window, continue...","This is a text prompt, I will install xquartz"),preselect="This is a pop-up window, continue...",
+                      title="Apple pop-up windows",graphics=graphics)
+	   if(length(selection)==0|selection==""){
+ 	     stopTMP<-TRUE
+	   } else {
+	     if(selection=="This is a text prompt, I will install xquartz") stopTMP<-TRUE
+	   }
      }
    }
    selectStep<--3
@@ -668,7 +681,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
            selectTMPNo<-"Do not show verbose hints and results"
            selectTMPYes<-"Show verbose hints and results (recommended)"
            selection<-utils::select.list(c(selectTMPYes,selectTMPNo),preselect=selectTMPYes,
-                      title="Show verbose hints?",graphics=TRUE)
+                      title="Show verbose hints?",graphics=graphics)
            if(length(selection)==0|selection=="") stopTMP<-TRUE
            if(!stopTMP){
             if(selection==selectTMPYes) mrbin.env$mrbin$parameters$verbose<-TRUE
@@ -682,7 +695,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
        selectTMPNo<-"Do not use parallel computing"
        selectTMPYes<-"Use parallel package for speed"
        selection<-utils::select.list(c(selectTMPYes,selectTMPNo),preselect=selectTMPYes,
-                  title="Try parallel computing for speed?",graphics=TRUE)
+                  title="Try parallel computing for speed?",graphics=graphics)
        if(length(selection)==0|selection=="") stopTMP<-TRUE
        if(!stopTMP){
         if(selection==selectTMPYes) mrbin.env$mrbin$parameters$tryParallel<-TRUE
@@ -697,7 +710,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
        selectTMPYes<-"Show spectrum previews (recommended)"
        selection<-utils::select.list(c(selectTMPYes,selectTMPNo#,"Go back"
                   ),preselect=selectTMPYes,
-                  title="Show spectrum previews?",graphics=TRUE)
+                  title="Show spectrum previews?",graphics=graphics)
        if(length(selection)==0|selection=="") stopTMP<-TRUE
        if(!stopTMP){
           if(selection==selectTMPYes) mrbin.env$mrbin$parameters$showSpectrumPreview<-"Yes"
@@ -713,21 +726,21 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
        selectionNewTMP<-c(selectionNewTMP,"Review parameters")#,"Reload from file")
 	   if(length(selectionNewTMP)>1){
          selectionRepeat<-utils::select.list(c(selectionNewTMP),preselect="Review parameters",
-                                          title="Edit parameters or use existing?",graphics=TRUE)
+                                          title="Edit parameters or use existing?",graphics=graphics)
 	   } else {
 	     selectionRepeat<-"Review parameters"
 	   }	   
        if(length(selectionRepeat)==0|selectionRepeat=="") stopTMP<-TRUE
-       if(selectionRepeat=="Reload from file"&!stopTMP){
-         recreatemrbin()
-         selectionRepeat2<-utils::select.list(c("Edit parameters","Use parameters from file without changes",
-                                          "Go back"),
-                                          preselect="Edit parameters",
-                                          title="Edit parameters or use as is?",graphics=TRUE)
-         if(length(selectionRepeat2)==0|selectionRepeat=="") stopTMP<-TRUE
-         if(selectionRepeat2=="Review parameters"&!stopTMP) selectionRepeat<-"Review parameters"
-         if(selectionRepeat2=="Use parameters from file without changes"&!stopTMP) selectionRepeat<-"Use current parameters"
-       }
+       # if(selectionRepeat=="Reload from file"&!stopTMP){
+         # recreatemrbin()
+         # selectionRepeat2<-utils::select.list(c("Edit parameters","Use parameters from file without changes",
+                                          # "Go back"),
+                                          # preselect="Edit parameters",
+                                          # title="Edit parameters or use as is?",graphics=graphics)
+         # if(length(selectionRepeat2)==0|selectionRepeat=="") stopTMP<-TRUE
+         # if(selectionRepeat2=="Review parameters"&!stopTMP) selectionRepeat<-"Review parameters"
+         # if(selectionRepeat2=="Use parameters from file without changes"&!stopTMP) selectionRepeat<-"Use current parameters"
+       # }
        if(!stopTMP&selectionRepeat=="Go back") selectStep<-selectStep-2
        if(!stopTMP) selectStep<-selectStep+1
      }
@@ -739,14 +752,17 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
        if(selectStep==1){#1D or 2D data?
            dimension<-utils::select.list(c("1D","2D","Go back"),
                                    preselect=mrbin.env$mrbin$parameters$dimension,
-                                   title="1D or 2D spectra?",graphics=TRUE)
+                                   title="1D or 2D spectra?",graphics=graphics)
            if(length(dimension)==0|dimension=="") stopTMP<-TRUE
            if(!stopTMP&!dimension=="Go back"){
-             if(dimension%in%c("1D","2D")){
-               mrbin.env$mrbin$parameters$dimension<-dimension
+             #if(dimension%in%c("1D","2D")){
+			   #if(!dimension==mrbin.env$mrbin$parameters$dimension){
+                 mrbin.env$mrbin$parameters$dimension<-dimension
+				 #resetEnv()
+			   #}
                if(dimension=="1D") dimlength<-2
                if(dimension=="2D") dimlength<-4
-             }
+             #}
            }
            if(!stopTMP&dimension=="Go back") selectStep<-selectStep-2
            if(!stopTMP) selectStep<-selectStep+1
@@ -760,11 +776,11 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 selectionFolders<-utils::select.list(c("Create new spectra list",selectionFoldersYes,
                                   "Add or remove spectra from current list","Go back"),
                                   preselect=selectionFoldersYes,
-                                  title="Use current spectra list?",graphics=TRUE)
+                                  title="Use current spectra list?",graphics=graphics)
                 if(length(selectionFolders)==0|selectionFolders=="") stopTMP<-TRUE
                 if(!stopTMP){
                   if(selectionFolders=="Create new spectra list"){
-                    selectionFolders<-selectFolders()
+                    selectionFolders<-selectFolders(graphics=graphics)
                     if(selectionFolders=="stop")  stopTMP<-TRUE
                   }
                 }
@@ -774,7 +790,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                     addFoldersTMP<-utils::select.list(c("Add spectra to list","Keep list",
                                   "Go back"),
                                   preselect="Keep list",
-                                  title="Add spectra to list?",graphics=TRUE)
+                                  title="Add spectra to list?",graphics=graphics)
                     if(length(addFoldersTMP)==0|addFoldersTMP=="") stopTMP<-TRUE
                     if(!stopTMP){
                       if(addFoldersTMP=="Add spectra to list"){
@@ -807,7 +823,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
             }
             previewTMP<-utils::select.list(c("Review spectra","Do not review spectra","Go back"),
                        preselect="Review spectra",
-                       ,title ="Review spectra?",graphics=TRUE)
+                       ,title ="Review spectra?",graphics=graphics)
             if(length(previewTMP)==0|previewTMP=="") stopTMP<-TRUE
             if(!stopTMP){
               if(!previewTMP=="Go back"){
@@ -821,7 +837,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                       plotTitleTMP,nchar(plotTitleTMP)-52,nchar(plotTitleTMP)),sep="")
 					try(dev.off(),silent=TRUE)
 					par(bg="white")
-                    plotNMR(plotTitle=plotTitleTMP,region="all",manualScale=FALSE)
+                    plotMultiNMR(plotTitle=plotTitleTMP,region="all",manualScale=FALSE)
                     previewTMP2List<-NULL
                     if(ipreviewTMP<length(mrbin.env$mrbin$parameters$NMRfolders)){
                       nextTMP<-"Spectrum quality is adequate, show next spectrum"
@@ -833,7 +849,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                     previewTMP2List<-c(previewTMP2List,"Skip review")
                     previewTMP2<-utils::select.list(previewTMP2List,
                        preselect=nextTMP,
-                       ,title =paste("Spectrum ",ipreviewTMP," quality adequate?",sep=""),graphics=TRUE)
+                       ,title =paste("Spectrum ",ipreviewTMP," quality adequate?",sep=""),graphics=graphics)
                     if(length(previewTMP2)==0|previewTMP2==""){
                       ipreviewTMP<-length(mrbin.env$mrbin$parameters$NMRfolders)+1
                     } else {
@@ -922,7 +938,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
             if(binMethodpreSelect=="Custom bin list") binMethodpreSelect<-userDefBinTMP
             binMethod<-utils::select.list(c("Rectangular bins",userDefBinTMP,"Go back"),
                        preselect=binMethodpreSelect,
-                       ,title ="Binning method: ",graphics=TRUE)
+                       ,title ="Binning method: ",graphics=graphics)
             if(length(binMethod)==0|binMethod=="") stopTMP<-TRUE
             if(!stopTMP){
               if(!binMethod=="Go back"){
@@ -951,7 +967,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
 					adjRegionPreselect<-paste("Keep: ",binRegionText,collapse="")
                     adjRegion<-utils::select.list(c(adjRegionPreselect,
                                "Change..."),preselect=adjRegionPreselect,
-                               title ="Bin region [ppm]: ",graphics=TRUE)
+                               title ="Bin region [ppm]: ",graphics=graphics)
                     if(length(adjRegion)==0){stopTMP<-TRUE}else{
 					  if(adjRegion==""){stopTMP<-TRUE}
 					}
@@ -1021,7 +1037,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 widthAdjust<-utils::select.list(c(binWidthTitle,"Change...",
                    "Show different part of spectrum...","Go back"),
                              preselect=binWidthTitle,
-                             title ="Bin width [ppm]: ",graphics=TRUE)
+                             title ="Bin width [ppm]: ",graphics=graphics)
                 if(length(widthAdjust)==0|widthAdjust=="") stopTMP<-TRUE
                 if(widthAdjust=="Show different part of spectrum..."){
                      widthTMP<-readline(prompt=paste("New left border, press enter to keep ",
@@ -1080,7 +1096,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 widthAdjust<-utils::select.list(c(currentBinSize,"Change...",
                   "Show different part of spectrum...","Go back"),
                              preselect=currentBinSize,
-                             title ="Bin size [ppm]: ",graphics=TRUE)
+                             title ="Bin size [ppm]: ",graphics=graphics)
                 if(length(widthAdjust)==0|widthAdjust=="") stopTMP<-TRUE
                 if(widthAdjust==currentBinSize) accept<-TRUE
                 if(widthAdjust=="Show different part of spectrum..."){
@@ -1164,7 +1180,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
             adjbinRegionSelect<-utils::select.list(c("Create new bin list",keepbinRegionYes,
                               editbinRegionYes,"Go back")[keepbinRegionIndex],
                               preselect=preselectbinRegion,
-                              title="Create new bin list?",graphics=TRUE)
+                              title="Create new bin list?",graphics=graphics)
             if(length(adjbinRegionSelect)==0|adjbinRegionSelect=="") stopTMP<-TRUE
             if(!stopTMP){
               if(adjbinRegionSelect=="Create new bin list"){
@@ -1188,7 +1204,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                   if(!stopTMP&!adjbinRegion=="Go back"){
                     if(ibinRegions>nrow(mrbin.env$mrbin$parameters$specialBinList)){
                       addbinRegion<-utils::select.list(c("Yes","No","Go back"),preselect="Yes",
-                                 title ="Add a new bin?",graphics=TRUE)
+                                 title ="Add a new bin?",graphics=graphics)
                       if(length(addbinRegion)==0|addbinRegion==""){
                         stopTMP<-TRUE
                         addbinRegion<-""
@@ -1258,7 +1274,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                         }
                         adjbinRegion<-utils::select.list(c(adjbinRegionAccept,"Change...","Remove bin","Go back"),
                                  preselect=adjbinRegionAccept,
-                                 title =paste("Edit bin ",ibinRegions,binTitleTMP,"?",sep=""),graphics=TRUE)
+                                 title =paste("Edit bin ",ibinRegions,binTitleTMP,"?",sep=""),graphics=graphics)
                       }
                       if(length(adjbinRegion)==0|adjbinRegion=="") stopTMP<-TRUE
                     }
@@ -1337,7 +1353,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
             adjRegion<-""
             referenceScaling<-utils::select.list(c("Yes","No","Go back"),
                                      preselect=mrbin.env$mrbin$parameters$referenceScaling,
-                                          title = "Scale to reference signal?",graphics=TRUE)
+                                          title = "Scale to reference signal?",graphics=graphics)
             if(length(referenceScaling)==0|referenceScaling=="") stopTMP<-TRUE
             if(!stopTMP&!referenceScaling=="Go back"){
               mrbin.env$mrbin$parameters$referenceScaling<-referenceScaling
@@ -1366,7 +1382,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                                         "ppm, right=",mrbin.env$mrbin$parameters$reference1D[2],"ppm",sep="")
                   adjRegion<-utils::select.list(c(RefRegionTitle,
                              "Change...","Go back"),
-                             preselect=RefRegionTitle,title ="Reference region [ppm]: ",graphics=TRUE)
+                             preselect=RefRegionTitle,title ="Reference region [ppm]: ",graphics=graphics)
                   if(length(adjRegion)==0|adjRegion=="") stopTMP<-TRUE
                   if(adjRegion==RefRegionTitle) accept<-TRUE
                   if(adjRegion=="Change..."){
@@ -1409,7 +1425,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                                           "ppm, bottom=",mrbin.env$mrbin$parameters$reference2D[4],"ppm",sep="")
                     adjRegion<-utils::select.list(c(RefRegionTitle,
                                "Change...","Go back"),
-                               preselect=RefRegionTitle,title ="Reference region [ppm]: ",graphics=TRUE)
+                               preselect=RefRegionTitle,title ="Reference region [ppm]: ",graphics=graphics)
                     if(length(adjRegion)==0|adjRegion=="") stopTMP<-TRUE
                     if(adjRegion==RefRegionTitle) accept<-TRUE
                     if(adjRegion=="Change..."){
@@ -1449,7 +1465,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
             adjRegion<-""
             removeSolvent<-utils::select.list(c("Yes","No","Go back"),
                                      preselect=mrbin.env$mrbin$parameters$removeSolvent,
-                                     title = "Remove solvent area?",graphics=TRUE)
+                                     title = "Remove solvent area?",graphics=graphics)
             if(length(removeSolvent)==0|removeSolvent=="") stopTMP<-TRUE
             if(!stopTMP&!removeSolvent=="Go back"){
               mrbin.env$mrbin$parameters$removeSolvent<-removeSolvent
@@ -1477,7 +1493,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                                         "ppm, right=",mrbin.env$mrbin$parameters$solventRegion[2],"ppm",sep="")
                   adjRegion<-utils::select.list(c(SolventRegionTitle,
                              "Change...","Go back"),
-                             preselect=SolventRegionTitle,title ="Solvent region to be removed: ",graphics=TRUE)
+                             preselect=SolventRegionTitle,title ="Solvent region to be removed: ",graphics=graphics)
                   if(length(adjRegion)==0|adjRegion=="") stopTMP<-TRUE
                   if(adjRegion==SolventRegionTitle) accept=TRUE
                   if(adjRegion=="Change..."&!stopTMP){
@@ -1511,7 +1527,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
               utils::flush.console()
             }
             removeAreas<-utils::select.list(c("Yes","No","Go back"),preselect=mrbin.env$mrbin$parameters$removeAreas,
-                                     title = "Remove additional areas?",graphics=TRUE)
+                                     title = "Remove additional areas?",graphics=graphics)
             if(length(removeAreas)==0|removeAreas=="") stopTMP<-TRUE
             if(!stopTMP&!removeAreas=="Go back"){
               mrbin.env$mrbin$parameters$removeAreas<-removeAreas
@@ -1557,7 +1573,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
 				}
                 removeAreaListTMP<-utils::select.list(c("Create new list",preselectKeepTMP,"Edit current list","Go back")[keepbinRegionIndex],
                                    preselect=preselectKeepTMPYes,
-                                   title = "Use previous area list or define new?",graphics=TRUE)
+                                   title = "Use previous area list or define new?",graphics=graphics)
                 if(length(removeAreaListTMP)==0|removeAreaListTMP=="") stopTMP<-TRUE
                 if(!removeAreaListTMP==preselectKeepTMP&!stopTMP&!removeAreaListTMP=="Go back"){
                   addAreasFlag<-TRUE
@@ -1579,7 +1595,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                       if(!stopTMP&!adjbinRegion=="Go back"){
                         if(ibinRegions>nrow(mrbin.env$mrbin$parameters$removeAreaList)){
                           addbinRegion<-utils::select.list(c("Yes","No","Go back"),preselect="No",
-                                     title ="Add a new region?",graphics=TRUE)
+                                     title ="Add a new region?",graphics=graphics)
                           if(length(addbinRegion)==0|addbinRegion==""){
                             stopTMP<-TRUE
                             addbinRegion<-""
@@ -1629,7 +1645,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                           } else {
                             adjbinRegion<-utils::select.list(c(adjbinRegionAccept,"Change...","Remove entry","Go back"),
                                      preselect=adjbinRegionAccept,
-                                     title =paste("Keep region ",ibinRegions,"?",sep=""),graphics=TRUE)
+                                     title =paste("Keep region ",ibinRegions,"?",sep=""),graphics=graphics)
                           }
                           if(length(adjbinRegion)==0|adjbinRegion=="") stopTMP<-TRUE
                         }
@@ -1707,7 +1723,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
             addbinRegion<-""
             sumBins<-utils::select.list(c("Yes","No","Go back"),
                                  preselect=mrbin.env$mrbin$parameters$sumBins,
-                                 title = "Merge bins of unstable peaks?",graphics=TRUE)
+                                 title = "Merge bins of unstable peaks?",graphics=graphics)
             if(length(sumBins)==0|sumBins=="") stopTMP<-TRUE
             if(!stopTMP&!sumBins=="Go back"){
               if(sumBins=="Yes"){#"Merge bins of unstable peaks (e.g. citrate)"
@@ -1756,7 +1772,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
 				  }
                   sumBinListTMP<-utils::select.list(c("Create new list",preselectKeepTMP,"Edit current list","Go back")[keepbinRegionIndex],
                                  preselect=preselectKeepTMPYes,
-                                 title = "Use previous area list or define new?",graphics=TRUE)
+                                 title = "Use previous area list or define new?",graphics=graphics)
                   if(length(sumBinListTMP)==0|sumBinListTMP=="") stopTMP<-TRUE
                   if(!sumBinListTMP==preselectKeepTMP&!stopTMP&!sumBinListTMP=="Go back"){
                     addAreasFlag<-TRUE
@@ -1778,7 +1794,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                       if(!stopTMP&!adjbinRegion=="Go back"){
                         if(ibinRegions>nrow(mrbin.env$mrbin$parameters$sumBinList)){
                           addbinRegion<-utils::select.list(c("Yes","No","Go back"),preselect="No",
-                                     title ="Add a new region?",graphics=TRUE)
+                                     title ="Add a new region?",graphics=graphics)
                           if(length(addbinRegion)==0|addbinRegion==""){
                             stopTMP<-TRUE
                             addbinRegion<-""
@@ -1828,7 +1844,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                           } else {
                             adjbinRegion<-utils::select.list(c(adjbinRegionAccept,"Change...","Remove","Go back"),
                                      preselect=adjbinRegionAccept,
-                                     title =paste("Keep region ",ibinRegions,"?",sep=""),graphics=TRUE)
+                                     title =paste("Keep region ",ibinRegions,"?",sep=""),graphics=graphics)
                           }
                           if(length(adjbinRegion)==0|adjbinRegion=="") stopTMP<-TRUE
                         }
@@ -1912,7 +1928,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
 			 }
              cropHSQC<-utils::select.list(c("Yes","No","Go back"),
                                    preselect=mrbin.env$mrbin$parameters$cropHSQC,
-                                   title="Crop spectra?",graphics=TRUE)
+                                   title="Crop spectra?",graphics=graphics)
              if(length(cropHSQC)==0|cropHSQC=="") stopTMP<-TRUE
              if(!stopTMP&!cropHSQC=="Go back"){
                mrbin.env$mrbin$parameters$cropHSQC<-cropHSQC
@@ -1938,7 +1954,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
             names(NamesDictTMP2)<-NamesDictTMP
             useAsNames<-utils::select.list(c(names(NamesDictTMP),"Go back"),
                                       preselect=NamesDictTMP2[mrbin.env$mrbin$parameters$useAsNames],
-                                      title = "Create sample names from",graphics=TRUE)
+                                      title = "Create sample names from",graphics=graphics)
             if(length(useAsNames)==0|useAsNames=="") stopTMP<-TRUE
             if(!stopTMP&!useAsNames=="Go back"){
               mrbin.env$mrbin$parameters$useAsNames<-NamesDictTMP[useAsNames]
@@ -1960,7 +1976,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
             PCAtitlelength<-""
             PCA<-utils::select.list(c("Yes","No","Go back"),
                               preselect = "Yes",#mrbin.env$mrbin$parameters$PCA,
-                              title = "Create result plot?",graphics=TRUE)
+                              title = "Create result plot?",graphics=graphics)
             if(length(PCA)==0|PCA=="") stopTMP<-TRUE
             if(!stopTMP&!PCA=="Go back"){
               mrbin.env$mrbin$parameters$PCA<-PCA
@@ -1995,7 +2011,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 }
                 PCAtitlelength<-utils::select.list(names(TitleListTMP2),
                                   preselect = names(TitleListTMP2)[TitleListTMP4==as.character(mrbin.env$mrbin$parameters$PCAtitlelength)],
-                                  title = "Shorten titles for plot?",graphics=TRUE)
+                                  title = "Shorten titles for plot?",graphics=graphics)
                 if(length(PCAtitlelength)==0|PCAtitlelength=="") stopTMP<-TRUE
                 if(!stopTMP&!PCAtitlelength=="Go back"){
                   if(TitleListTMP2[PCAtitlelength]=="All"){
@@ -2025,7 +2041,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
            saveFilesTMP2<-"Select new folder and file name"
            saveFilesTMP<-utils::select.list(c("Yes","No","Go back"),
                        preselect=mrbin.env$mrbin$parameters$saveFiles,
-                       title ="Save output to disk?",graphics=TRUE)
+                       title ="Save output to disk?",graphics=graphics)
            if(length(saveFilesTMP)==0|saveFilesTMP=="") stopTMP<-TRUE
            if(!stopTMP&!saveFilesTMP=="Go back"){
             mrbin.env$mrbin$parameters$saveFiles<-saveFilesTMP
@@ -2034,7 +2050,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                keepFileTMP<-paste("Keep ",mrbin.env$mrbin$parameters$outputFileName,sep="")
                saveFilesTMP2<-utils::select.list(c(keepFileTMP,"Select new folder and file name","Go back"),
                            preselect=keepFileTMP,
-                           title ="Keep file name and folder?",graphics=TRUE)
+                           title ="Keep file name and folder?",graphics=graphics)
                if(length(saveFilesTMP2)==0|saveFilesTMP=="") stopTMP<-TRUE
               }
               if(!stopTMP&saveFilesTMP2=="Select new folder and file name"){
@@ -2054,7 +2070,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                         folderListTMP<-folderList
                      }
                      selectFolders<-utils::select.list(folderListTMP,preselect=NULL,multiple=TRUE,
-                                      title = "Go to folder, then click OK",graphics=TRUE)
+                                      title = "Go to folder, then click OK",graphics=graphics)
                      if(!length(selectFolders)==1) {
                         selectFolders<-parentFolder
                         selectList<-parentFolder
@@ -2075,7 +2091,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                    }
 				   filenameTMPpreselect<-paste("mrbin_",gsub(":","-",gsub(" ","_",Sys.Date())),sep="")
                    filenameTMP<-utils::select.list(c(filenameTMPpreselect,"Change..."),preselect=filenameTMPpreselect,
-                               title ="Output file name: ",graphics=TRUE)
+                               title ="Output file name: ",graphics=graphics)
                    if(length(filenameTMP)==0){stopTMP<-TRUE}else{
 				     if(filenameTMP=="") stopTMP<-TRUE
 				   }
@@ -2141,7 +2157,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
            startmrbin<-utils::select.list(c("Start binning now","I'll do it later","Go back"),
                       preselect="Start binning now",
                       title =paste("Start now? Estimate: >",round(
-                      mrbin.env$mrbinTMP$timeEstimate/60,0)," min",sep=""),graphics=TRUE)
+                      mrbin.env$mrbinTMP$timeEstimate/60,0)," min",sep=""),graphics=graphics)
            if(length(startmrbin)==0|startmrbin==""|startmrbin=="I'll do it later") stopTMP<-TRUE
            if(!stopTMP&startmrbin=="Go back"){
              selectStep<-selectStep-2
@@ -2160,7 +2176,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
        readNMR(folder=mrbin.env$mrbin$parameters$NMRfolders[iCheckFiles],
          dimension=mrbin.env$mrbin$parameters$dimension,checkFiles=TRUE)
      }
-     mrbin.env$mrbin<-mrbinrun(createbins=TRUE,process=FALSE,silent=silent)
+     mrbin.env$mrbin<-mrbinrun(createbins=TRUE,process=FALSE,silent=silent,graphics=graphics)
      if(mrbin.env$mrbin$parameters$verbose){
       if(!is.null(mrbin.env$mrbin$parameters$warningMessages)){
        for(iWarningTMP in 1:length(mrbin.env$mrbin$parameters$warningMessages)){
@@ -2191,7 +2207,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                                                  "Data quality is adequate, please continue...",
                                                  plotReviewStartOver),
                                          preselect=plotReviewPreselect,
-                                         title="Please review data quality",graphics=TRUE)
+                                         title="Please review data quality",graphics=graphics)
                 if(length(plotReview)==0|plotReview==""|plotReview==plotReviewPreselect){
  				  stopTMP<-TRUE
 				  warning("No output was generated. Please review output and restart mrbin.")
@@ -2217,7 +2233,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                                    plotReviewStartOver)
                  plotReview<-utils::select.list(listWarningTMP,
                                            preselect=listWarningPreselect,
-                                           title="There were warning messages",graphics=TRUE)
+                                           title="There were warning messages",graphics=graphics)
                  if(length(plotReview)==0|plotReview==""|plotReview==listWarningPreselect) stopTMP<-TRUE
                 }
                 if(!stopTMP&plotReview==plotReviewStartOver){
@@ -2236,7 +2252,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 }
                 noiseRemoval<-utils::select.list(c("Yes","No"),
                                          preselect=mrbin.env$mrbin$parameters$noiseRemoval,
-                                         title="Remove noise?",graphics=TRUE)
+                                         title="Remove noise?",graphics=graphics)
                 if(length(noiseRemoval)==0|noiseRemoval=="") stopTMP<-TRUE
                 if(!stopTMP){
                   if(!noiseRemoval==mrbin.env$mrbin$parameters$noiseRemoval){
@@ -2245,7 +2261,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                       parameters=list(noiseRemoval=noiseRemoval),verbose=FALSE)
                   }
                   if(mrbin.env$mrbin$parameters$noiseRemoval=="Yes"){
-                    mrbin.env$mrbin<-setNoiseLevels(mrbin.env$mrbin,plotOnly=FALSE)
+                    mrbin.env$mrbin<-setNoiseLevels(mrbin.env$mrbin,plotOnly=FALSE,graphics=graphics)
                   }
                   selectStep<-selectStep+1
                 }
@@ -2259,7 +2275,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 }
                 dilutionCorrection<-utils::select.list(c("Yes","No","Go back"),
                        preselect=mrbin.env$mrbin$parameters$dilutionCorrection,
-                       title = "Dilution correction?",graphics=TRUE)
+                       title = "Dilution correction?",graphics=graphics)
                 if(length(dilutionCorrection)==0|dilutionCorrection=="") stopTMP<-TRUE
                 if(!stopTMP&!dilutionCorrection=="Go back"){
                   if(!dilutionCorrection==mrbin.env$mrbin$parameters$dilutionCorrection){
@@ -2269,7 +2285,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                      parameters=list(dilutionCorrection=dilutionCorrection),verbose=FALSE)
                   }
                   if(mrbin.env$mrbin$parameters$dilutionCorrection=="Yes"){
-                    mrbin.env$mrbin<-setDilutionFactors(mrbin.env$mrbin)
+                    mrbin.env$mrbin<-setDilutionFactors(mrbin.env$mrbin,graphics=graphics)
                   }
                 }
                 if(!stopTMP&(dilutionCorrection=="Go back")){
@@ -2287,7 +2303,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 }
                 PQNScaling<-utils::select.list(c("Yes","No","Go back"),
                                         preselect=mrbin.env$mrbin$parameters$PQNScaling,
-                                        title = "PQN normalization?",graphics=TRUE)
+                                        title = "PQN normalization?",graphics=graphics)
                 if(length(PQNScaling)==0|PQNScaling=="") stopTMP<-TRUE
                 if(!stopTMP&!PQNScaling=="Go back"){
                   if(!PQNScaling==mrbin.env$mrbin$parameters$PQNScaling){
@@ -2302,7 +2318,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                     }
                     PQNScalingIgnoreSugar<-utils::select.list(c("Yes","No","Go back"),
                                             preselect=mrbin.env$mrbin$parameters$PQNIgnoreSugarArea,
-                                            title = "Ignore glucose for PQN?",graphics=TRUE)
+                                            title = "Ignore glucose for PQN?",graphics=graphics)
                     if(length(PQNScalingIgnoreSugar)==0|PQNScalingIgnoreSugar=="") stopTMP<-TRUE
                     if(!stopTMP&!PQNScalingIgnoreSugar=="Go back"&
                      !PQNScalingIgnoreSugar==mrbin.env$mrbin$parameters$PQNIgnoreSugarArea){
@@ -2328,7 +2344,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
               if(!stopTMP){
                 fixNegatives<-utils::select.list(c("Yes","No","Go back"),
                                           preselect=mrbin.env$mrbin$parameters$fixNegatives,
-                                          title="Fix negative values (atnv)",graphics=TRUE)
+                                          title="Fix negative values (atnv)",graphics=graphics)
                 if(length(fixNegatives)==0|fixNegatives=="") stopTMP<-TRUE
                 if(!stopTMP&!fixNegatives=="Go back"&!fixNegatives==mrbin.env$mrbin$parameters$fixNegatives){
                  mrbin.env$mrbin<-editmrbin(mrbinObject=mrbin.env$mrbin,
@@ -2355,7 +2371,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 #  preselectTMP<-"No"
                 #}
                 logTrafo<-utils::select.list(c("Yes","No","Go back"),preselect=preselectTMP,
-                                      title="Log transformation?",graphics=TRUE)
+                                      title="Log transformation?",graphics=graphics)
                 if(length(logTrafo)==0|logTrafo=="") stopTMP<-TRUE
                 if(!stopTMP&!logTrafo=="Go back"&!logTrafo==mrbin.env$mrbin$parameters$logTrafo){
                      mrbin.env$mrbin<-editmrbin(mrbinObject=mrbin.env$mrbin,
@@ -2379,7 +2395,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
                 }
                 preselectTMP<-mrbin.env$mrbin$parameters$unitVarianceScaling
                 unitVarianceScaling<-utils::select.list(c("Yes","No","Go back"),preselect=preselectTMP,
-                                      title="Unit variance scaling?",graphics=TRUE)
+                                      title="Unit variance scaling?",graphics=graphics)
                 if(length(unitVarianceScaling)==0|unitVarianceScaling=="") stopTMP<-TRUE
                 if(!stopTMP&!unitVarianceScaling=="Go back"&!unitVarianceScaling==mrbin.env$mrbin$parameters$unitVarianceScaling){
                      mrbin.env$mrbin<-editmrbin(mrbinObject=mrbin.env$mrbin,
@@ -2404,7 +2420,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
  }
  if(!stopTMP){
    mrbin.env$mrbin<-mrbinrun(createbins=FALSE,process=TRUE,mrbinResults=mrbin.env$mrbin,
-     silent=silent)
+     silent=silent,graphics=graphics)
    if(mrbin.env$mrbin$parameters$verbose){
        mrbin.env$mrbin<-editmrbin(mrbinObject=mrbin.env$mrbin,
          functionName="mrbin::mrbin",
@@ -2429,6 +2445,7 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
 #' @param process If TRUE, bin data is processed, e.g. by noise removal, atnv, etc.
 #' @param mrbinResults An mrbin object. Needs to be provided only if createbins is FALSE
 #' @param silent If set to FALSE, no new time calculation is performed
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible mrbin object
 #' @export
 #' @examples
@@ -2441,7 +2458,8 @@ mrbin<-function(silent=FALSE,setDefault=FALSE,parameters=NULL,metadata=NULL){
 #'                 system.file("extdata/3/12/pdata/10",package="mrbin"))))
 #' results<-mrbinrun()
 
-mrbinrun<-function(createbins=TRUE,process=TRUE,mrbinResults=NULL,silent=TRUE){
+mrbinrun<-function(createbins=TRUE,process=TRUE,mrbinResults=NULL,silent=TRUE,
+  graphics=TRUE){
   defineGroups<-FALSE
   if(!is.null(mrbin.env$mrbin$parameters$NMRfolders)){
     if(createbins){
@@ -2545,7 +2563,7 @@ mrbinrun<-function(createbins=TRUE,process=TRUE,mrbinResults=NULL,silent=TRUE){
           }
         }
       #create and save noise plots
-      if(silent&mrbinResults$parameters$saveFiles=="Yes") setNoiseLevels(mrbinResults,plotOnly=TRUE,silent=silent)
+      if(silent&mrbinResults$parameters$saveFiles=="Yes") setNoiseLevels(mrbinResults,plotOnly=TRUE,silent=silent,graphics=graphics)
       if(mrbinResults$parameters$noiseRemoval=="Yes") mrbinResults<-removeNoise(mrbinResults,verbose=FALSE)
       if(mrbinResults$parameters$dilutionCorrection=="Yes") mrbinResults<-dilutionCorrection(mrbinResults)
       if(mrbinResults$parameters$fixNegatives=="Yes") mrbinResults<-atnv(mrbinResults,verbose=FALSE)
@@ -2614,6 +2632,7 @@ mrbinrun<-function(createbins=TRUE,process=TRUE,mrbinResults=NULL,silent=TRUE){
 #' @param dilutionFactors An optional vector of dilution factors. If provided, no user input is requested
 #' @param errorsAsWarnings If TRUE, errors will be turned into warnings. Should be used with care, as errors indicate undocumented changes to the data.
 #' @param alwaysShowOptionKeep If TRUE, you will be asked to keep current values even if they do not match the current dataset.
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible mrbin object
 #' @export
 #' @examples
@@ -2628,7 +2647,7 @@ mrbinrun<-function(createbins=TRUE,process=TRUE,mrbinResults=NULL,silent=TRUE){
 #'  results<-setDilutionFactors(results,dilutionFactors=c(1.5,2))
 
 setDilutionFactors<-function(mrbinObject,dilutionFactors=NULL,
-  errorsAsWarnings=FALSE,alwaysShowOptionKeep=FALSE){
+  errorsAsWarnings=FALSE,alwaysShowOptionKeep=FALSE,graphics= TRUE){
   stopTMP<-FALSE
   if(is.null(dilutionFactors)){
      optionTMP<-"Create new list"
@@ -2643,7 +2662,7 @@ setDilutionFactors<-function(mrbinObject,dilutionFactors=NULL,
      optionTMP<-yesOptionTMP[1]
      selectionFactors<-utils::select.list(yesOptionTMP,
                      preselect=optionTMP,
-                     title = "Use previous dilution factors?",graphics=TRUE)
+                     title = "Use previous dilution factors?",graphics=graphics)
      if(length(selectionFactors)==0|selectionFactors=="") stopTMP<-TRUE
      if(!stopTMP&!selectionFactors=="Go back"){
        #if(selectionFactors=="Edit current dilution factors"){
@@ -2686,6 +2705,7 @@ setDilutionFactors<-function(mrbinObject,dilutionFactors=NULL,
 #' @param plotOnly Should only noise plots be generated (TRUE), or should noise levels be adjusted interactively (FALSE)
 #' @param showSpectrumPreview Should plots be shown? If not provided, this value will be taken from the mrbin object parameters
 #' @param silent If set to TRUE, plots will not be shown but might still be saved
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible mrbin object
 #' @export
 #' @examples
@@ -2700,7 +2720,7 @@ setDilutionFactors<-function(mrbinObject,dilutionFactors=NULL,
 #'  results<-setNoiseLevels(results,plotOnly=TRUE)
 
 setNoiseLevels<-function(mrbinObject,plotOnly=FALSE,
-  showSpectrumPreview=NULL,silent=FALSE){
+  showSpectrumPreview=NULL,silent=FALSE,graphics=TRUE){
     if(is.null(showSpectrumPreview)) showSpectrumPreview<-mrbinObject$parameters$showSpectrumPreview
     stopTMP<-FALSE
 
@@ -2780,7 +2800,7 @@ setNoiseLevels<-function(mrbinObject,plotOnly=FALSE,
       adjNoiseRegion<-utils::select.list(c(adjNoiseRegionAccept,"Change..."#,"Go back"
                ),
                preselect=adjNoiseRegionAccept,
-               title ="Keep noise region?",graphics=TRUE)
+               title ="Keep noise region?",graphics=graphics)
       if(length(adjNoiseRegion)==0|adjNoiseRegion=="") stopTMP<-TRUE
        if(!stopTMP){
             if(adjNoiseRegion==adjNoiseRegionAccept) adjNoiseRegionAcceptFlag<-TRUE
@@ -3078,7 +3098,7 @@ setNoiseLevels<-function(mrbinObject,plotOnly=FALSE,
      if(mrbinObject$parameters$dimension=="1D"&!stopTMP){
       SNRTMP<-utils::select.list(c(paste("Keep ",signal_to_noise1D,sep=""),
               "Increase by 2","Reduce by 2","Change..."),preselect=paste("Keep ",signal_to_noise1D,sep=""),
-              title="Signal-to-noise ratio (SNR):",graphics=TRUE)
+              title="Signal-to-noise ratio (SNR):",graphics=graphics)
       if(length(SNRTMP)==0|SNRTMP=="") stopTMP<-TRUE
       if(!stopTMP){
         if(SNRTMP==paste("Keep ",signal_to_noise1D,sep="")){
@@ -3105,7 +3125,7 @@ setNoiseLevels<-function(mrbinObject,plotOnly=FALSE,
      if(mrbinObject$parameters$dimension=="2D"&!stopTMP){
       SNRTMP<-utils::select.list(c(paste("Keep ",signal_to_noise2D,sep=""),
               "Increase by 2","Reduce by 2","Change..."),preselect=paste("Keep ",signal_to_noise2D,sep=""),
-              title="Signal-to-noise ratio (SNR):",graphics=TRUE)
+              title="Signal-to-noise ratio (SNR):",graphics=graphics)
       if(length(SNRTMP)==0|SNRTMP=="") stopTMP<-TRUE
       if(!stopTMP){
         if(SNRTMP==paste("Keep ",signal_to_noise2D,sep="")){
@@ -3169,7 +3189,7 @@ setNoiseLevels<-function(mrbinObject,plotOnly=FALSE,
         noiseTMP<-utils::select.list(unique(c(as.character(mrbinObject$parameters$noiseThreshold),
                                "0.2","0.75","0.05","Change...")),
                                preselect=as.character(mrbinObject$parameters$noiseThreshold),
-                               title="Minimum percentage > noise",graphics=TRUE)
+                               title="Minimum percentage > noise",graphics=graphics)
         if(length(noiseTMP)==0|noiseTMP=="") stopTMP<-TRUE
         if(!stopTMP){
           if(noiseTMP=="Change..."&!stopTMP){
@@ -3197,6 +3217,7 @@ setNoiseLevels<-function(mrbinObject,plotOnly=FALSE,
 #' This function edits interactively or non-interactively the metadata filed of the provided mrbin object.
 #' @param mrbinResults An mrbin object
 #' @param metadata An optional list of objects to be changed. If provided, interactive mode is deactivated
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible mrbin object
 #' @export
 #' @examples
@@ -3210,7 +3231,7 @@ setNoiseLevels<-function(mrbinObject,plotOnly=FALSE,
 #'                    ))
 #'  results<-metadatamrbin(results,metadata=list(projectTitle="Test project"))
 
-metadatamrbin<-function(mrbinResults,metadata=NULL){
+metadatamrbin<-function(mrbinResults,metadata=NULL,graphics=graphics){
   if(!is.null(metadata)){
      mrbinResults<-editmrbin(mrbinResults,functionName="mrbin::metadatamrbin",
               versionNumber=as.character(utils::packageVersion("mrbin")),
@@ -3226,14 +3247,14 @@ metadatamrbin<-function(mrbinResults,metadata=NULL){
          substr(paste(mrbinResults$metadata[[iValues[i]]],sep=" ",collapse=" "),1,45),sep=""))
        utils::flush.console()
        if(iValues[i]=="dilutionFactors"){#Define dilution
-          mrbinResults<-setDilutionFactors(mrbinResults,alwaysShowOptionKeep=TRUE)
+          mrbinResults<-setDilutionFactors(mrbinResults,alwaysShowOptionKeep=TRUE,graphics=graphics)
        } else {
          if(iValues[i]=="factors"){#Define groups
           selectionFactors<-""
           defineGroups<-utils::select.list(c("Edit group memberships",#"Use a column from metadata data.frame",
                                     "Keep","Go back"),
                                     preselect="Keep",
-                                    title = "Edit classes/groups for PCA",graphics=TRUE)
+                                    title = "Edit classes/groups for PCA",graphics=graphics)
           if(length(defineGroups)==0|defineGroups=="") stopTMP<-TRUE
           if(!stopTMP){
            if(defineGroups=="Go back") i<-i-2
@@ -3246,7 +3267,7 @@ metadatamrbin<-function(mrbinResults,metadata=NULL){
                                        ", ...)",sep="")
                    selectionFactors<-utils::select.list(c(yesOptionTMP,"No"),
                                      preselect=yesOptionTMP,
-                                     title = "Use previous factor list?",graphics=TRUE)
+                                     title = "Use previous factor list?",graphics=graphics)
                    if(length(selectionFactors)==0|selectionFactors=="") stopTMP<-TRUE
                    if(!stopTMP&selectionFactors=="No")  mrbinResults<-setFactors(mrbinResults)
                  } else {
@@ -3259,7 +3280,7 @@ metadatamrbin<-function(mrbinResults,metadata=NULL){
           }
        } else {
           defineGroups<-utils::select.list(c(paste("Edit ",iValues[i],sep=""),"Keep","Replace","Go back"),
-                                preselect="Keep",title=paste("Edit ",iValues[i],sep=""),graphics=TRUE)
+                                preselect="Keep",title=paste("Edit ",iValues[i],sep=""),graphics=graphics)
           if(length(defineGroups)==0|defineGroups=="") stopTMP<-TRUE
           if(!stopTMP){
            if(defineGroups=="Go back") i<-i-2
@@ -3618,18 +3639,19 @@ printParameters<-function(){
 #' previous run or mrbin(). After reading, the data can be recreated using
 #' mrbin(). File names in $parameters might need to be updated.
 #' @param filename File path/name of the mrbin parameter file to be loaded
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return {None}
 #' @export
 #' @examples
 #' # Insert full folder path and file name
 #' recreatemrbin(system.file("extdata/mrbin.txt",package="mrbin"))
 
-recreatemrbin<-function(filename=NULL){
+recreatemrbin<-function(filename=NULL,graphics= TRUE){
   if(!exists("mrbin.env", mode="environment")) .onLoad()
   if(is.null(filename)){
    selectFlag<-0
    enterFolders<-utils::select.list(c("Browse...","Enter full file path manually"),
-                 preselect="Browse...",title="Select parameter file:",graphics=TRUE)
+                 preselect="Browse...",title="Select parameter file:",graphics=graphics)
    enterFoldersTMP<-readline(prompt="Enter file path: ")
    if(!enterFoldersTMP==""){
     parentFolder<-gsub('\\\\',"/",enterFoldersTMP)
@@ -3649,7 +3671,7 @@ recreatemrbin<-function(filename=NULL){
         folderListTMP<-folderList
      }
      selectFolders<-utils::select.list(folderListTMP,preselect=NULL,multiple=FALSE,
-                      title = paste("Browse to parameter file:",parentFolder),graphics=TRUE)
+                      title = paste("Browse to parameter file:",parentFolder),graphics=graphics)
      if(selectFolders%in%c("..                                                                            ",folderList1)){
           if(selectFolders=="..                                                                            "){
                if(length(strsplit(parentFolder,split="/")[[1]])>1){
@@ -3770,15 +3792,16 @@ logTrafo<-function(mrbinResults,verbose=TRUE,errorsAsWarnings=FALSE){
 #' This function lets the user pick a spectrum from the list of spectra
 #' analysis. This function is meant only for use within the mrbin function.
 #' @param  spectrumNumber If provided, this number will be used; defaults to NULL
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return {None}
 #' @export
 #' @examples
 #' \donttest{ setCurrentSpectrum(spectrumNumber=1) }
 
-setCurrentSpectrum<-function(spectrumNumber=NULL){
+setCurrentSpectrum<-function(spectrumNumber=NULL,graphics= TRUE){
      if(is.null(spectrumNumber)){
        newCurrent<-utils::select.list(mrbin.env$mrbin$parameters$NMRfolders,preselect=mrbin.env$mrbinTMP$currentFolder,
-                                          title="Select new current spectrum.",graphics=TRUE)
+                                          title="Select new current spectrum.",graphics=graphics)
      } else {
        if(length(mrbin.env$mrbin$parameters$NMRfolders)>=spectrumNumber){
          newCurrent<- mrbin.env$mrbin$parameters$NMRfolders[spectrumNumber]
@@ -3800,6 +3823,7 @@ setCurrentSpectrum<-function(spectrumNumber=NULL){
 #' @param spectra Character vector with NMR folder names to be excluded. If provided, no interactive selection will be shown
 #' @param verbose Should a summary be printed?
 #' @param errorsAsWarnings If TRUE, errors will be turned into warnings. Should be used with care, as errors indicate undocumented changes to the data.
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible mrbin object (only if an mrbin object was provided)
 #' @export
 #' @examples
@@ -3812,7 +3836,7 @@ setCurrentSpectrum<-function(spectrumNumber=NULL){
 #' results<-removeSpectrum(results,
 #'  spectra=c(system.file("extdata/2/10/pdata/10",package="mrbin")))
 
-removeSpectrum<-function(mrbinResults=NULL,spectra=NULL,verbose=TRUE,errorsAsWarnings=FALSE){
+removeSpectrum<-function(mrbinResults=NULL,spectra=NULL,verbose=TRUE,errorsAsWarnings=FALSE,graphics= TRUE){
  if(!is.null(mrbinResults)){
     transformations="Spectra removed"
     if("Noise removed" %in% mrbinResults$transformations){
@@ -3840,7 +3864,7 @@ removeSpectrum<-function(mrbinResults=NULL,spectra=NULL,verbose=TRUE,errorsAsWar
    listTMP<-spectra
    if(is.null(spectra)){
     listTMP<-utils::select.list(NMRfolders,preselect=NULL,
-      multiple=TRUE,title ="Remove spectra, cancel to keep all",graphics=TRUE)
+      multiple=TRUE,title ="Remove spectra, cancel to keep all",graphics=graphics)
    }
    continueTMP<-FALSE
    if(length(listTMP)>0){
@@ -3877,13 +3901,14 @@ removeSpectrum<-function(mrbinResults=NULL,spectra=NULL,verbose=TRUE,errorsAsWar
 #'
 #' This function lets the user pick samples from a list to assign them to
 #' groups. This function is meant only for use within the mrbin function.
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible mrbin object
 #' @keywords internal
 #' @noRd
 #' @examples
 #' \donttest{ setFactors() }
 
-setFactors<-function(mrbinResults){
+setFactors<-function(mrbinResults,graphics= TRUE){
    if(length(mrbinResults$parameters$NMRfolders)>0){
       Factors<-rep("Group 0",length(mrbinResults$parameters$NMRfolders))
       names(Factors)<-mrbinResults$parameters$NMRfolders
@@ -3891,16 +3916,17 @@ setFactors<-function(mrbinResults){
       i<-0
       while(flag){
         i<-i+1
-        listTMP<-utils::select.list(names(Factors),preselect = NULL, multiple = TRUE,title ="Please select group members",graphics=TRUE)
+        listTMP<-utils::select.list(names(Factors),preselect = NULL, multiple = TRUE,title ="Please select group members",
+		  graphics=graphics)
         groupNameTMP<-utils::select.list(c(paste("Group",i),"Enter new name"),preselect=paste("Group",i),
-                  multiple=FALSE,title ="Group name?",graphics=TRUE)
+                  multiple=FALSE,title ="Group name?",graphics=graphics)
         if(groupNameTMP=="Enter new name"){
           groupNameTMP<-readline(prompt=paste("New group name, press enter to use \"Group ",i,"\": ",sep=""))
           if(groupNameTMP=="") groupNameTMP<-paste("Group ",i,sep="")
         }
         Factors[listTMP]<-groupNameTMP
         select<-utils::select.list(c("Yes","No"),preselect = "No",multiple = FALSE,
-            title = paste("Define additional groups?",sep=""),graphics=TRUE)
+            title = paste("Define additional groups?",sep=""),graphics=graphics)
         if(select=="No") flag<-FALSE
       }
       Factors<-as.factor(Factors)
@@ -3918,16 +3944,17 @@ setFactors<-function(mrbinResults){
 #' (currently only Bruker). This function is meant only for use within the
 #' mrbin function.
 #' @param keep Keep and add to current list of spectra, or create an all new list
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible list of folder names, or "Go back" or "stop"
 #' @keywords internal
 #' @noRd
 #' @examples
 #' \donttest{ selectFolders() }
 
-selectFolders<-function(keep=FALSE){#Select NMR spectral folders
+selectFolders<-function(keep=FALSE,graphics= TRUE){#Select NMR spectral folders
       selectionFolders<-""
       if(mrbin.env$mrbin$parameters$NMRvendor=="Bruker"){
-          selectionFolders<-selectBrukerFolders(keep)
+          selectionFolders<-selectBrukerFolders(keep,graphics=graphics)
       }  else {
           stop(paste("No folder selection function defined for vendor ",mrbin.env$mrbin$parameters$NMRvendor,".\n",sep=""))
       }
@@ -3939,13 +3966,14 @@ selectFolders<-function(keep=FALSE){#Select NMR spectral folders
 #' This function lets the user set NMR data folders interactively (for Bruker data). This function
 #' is meant only for use within the mrbin function.
 #' @param keep Keep and add to current list of spectra, or create an all new list
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @return An invisible list of folder names, or "Go back" or "stop"
 #' @keywords internal
 #' @noRd
 #' @examples
 #' \donttest{ selectBrukerFolders() }
 
-selectBrukerFolders<-function(keep=FALSE){#Select Bruker NMR spectral folders
+selectBrukerFolders<-function(keep=FALSE,graphics= TRUE){#Select Bruker NMR spectral folders
   selectionFolders<-""
   if(!keep){
     mrbin.env$mrbin$parameters$NMRfolders<-NULL
@@ -3957,7 +3985,7 @@ selectBrukerFolders<-function(keep=FALSE){#Select Bruker NMR spectral folders
   singleFolderFlag<-FALSE
   enterFolders<-utils::select.list(c("Browse...",#"Enter parent folder path manually",
                  "Go back"),
-                 preselect="Browse...",title="Set NMR parent folder:",graphics=TRUE)
+                 preselect="Browse...",title="Set NMR parent folder:",graphics=graphics)
   if(enterFolders==""|length(enterFolders)==0){
        if(is.null(mrbin.env$mrbin$parameters$NMRfolders)) selectionFolders<-"stop"
   } else {
@@ -3966,7 +3994,7 @@ selectBrukerFolders<-function(keep=FALSE){#Select Bruker NMR spectral folders
     } else {
       folderPrompt<-"Enter folder path: "
       if(enterFolders=="Browse..."){
-        folderPrompt<-"Enter starting folder path (example: Windows: \"C:\\\", Apple: \"/\"): "
+        folderPrompt<-"Enter starting folder, e.g. \"C:\\\" (Windows) or \"/\" (Apple, Linux): "
       }
       enterFoldersTMP<-readline(prompt=folderPrompt)
       if(!enterFoldersTMP==""){
@@ -3989,7 +4017,7 @@ selectBrukerFolders<-function(keep=FALSE){#Select Bruker NMR spectral folders
          }
          if(!singleFolderFlag){
              selectFolders<-utils::select.list(folderListTMP,preselect=NULL,multiple=TRUE,
-                              title = "Go to parent folder, then click OK",graphics=TRUE)
+                              title = "Go to parent folder, then click OK",graphics=graphics)
          }
          if(!length(selectFolders)==1) {
             selectFolders<-parentFolder
@@ -4068,7 +4096,7 @@ selectBrukerFolders<-function(keep=FALSE){#Select Bruker NMR spectral folders
                 message(paste("No Bruker NMR data found in folder."))
                 noDataFoundExit<-utils::select.list(c("Continue browsing","Exit"),
                                 preselect="Continue browsing",
-                                title = "No NMR data found in folder.",graphics=TRUE)
+                                title = "No NMR data found in folder.",graphics=graphics)
                 if(noDataFoundExit=="Continue browsing"){
                       selectFlag<-0
                 } else {
@@ -4090,7 +4118,7 @@ selectBrukerFolders<-function(keep=FALSE){#Select Bruker NMR spectral folders
                }
                spectrum_proc_pathTMP<-c("Select all",spectrum_proc_path,"Select all")
                NMRfoldersTMP<-utils::select.list(spectrum_proc_pathTMP,preselect=NULL,multiple=TRUE,
-                         title = "Select data sets",graphics=TRUE)
+                         title = "Select data sets",graphics=graphics)
                if("Select all"%in%NMRfoldersTMP) NMRfoldersTMP<-spectrum_proc_path
                #NMRfolders<-c(NMRfolders,NMRfoldersTMP)
                if(!is.null(NMRfoldersTMP)) mrbin.env$mrbin$parameters$NMRfolders<-unique(c(mrbin.env$mrbin$parameters$NMRfolders,NMRfoldersTMP))
@@ -4100,7 +4128,7 @@ selectBrukerFolders<-function(keep=FALSE){#Select Bruker NMR spectral folders
                while(addSpectrumTMP){
                  yesornoPreSelect<-paste("Keep current spectra list (",length(mrbin.env$mrbin$parameters$NMRfolders)," spectra)",sep="")
                  yesorno<-utils::select.list(c(yesornoPreSelect,"Add additional spectra","Remove spectra from list"),
-                           preselect=yesornoPreSelect,multiple=FALSE,title="Add additional spectra?",graphics=TRUE)
+                           preselect=yesornoPreSelect,multiple=FALSE,title="Add additional spectra?",graphics=graphics)
                  if(is.null(yesorno)|yesorno==""){
                      addSpectrumTMP<-FALSE
                  }
@@ -4560,7 +4588,7 @@ addToPlot<-function(folder=NULL,
          NMRdataList$currentSpectrumFolderName_EXPNO,
          NMRdataList$currentSpectrumName,
          1,#This is a scaling factor
-         setdiff(unique(c("blue","gray28","darkgreen","chocolate1","forestgreen","purple",
+         setdiff(unique(c("blue","gray28","purple","chocolate1","darkgreen","forestgreen",
 		   "brown","goldenrod","navy","violet","yellowgreen","orange",
 		   #grDevices::colors()[c(552,26,547,81,498)],
            sample(grDevices::colors(distinct=TRUE),100))),
@@ -7719,7 +7747,7 @@ plotMultiNMR<-function(region=NULL,rectangleRegions=NULL,
 		#thresholdTMP<-sort(currentSpectrumOriginal)[length(currentSpectrumOriginal)*.49]+
 		#	8.5*abs(sort(currentSpectrumOriginal)[length(currentSpectrumOriginal)*.49]-
 		#	sort(currentSpectrumOriginal)[length(currentSpectrumOriginal)*.74])
-		thresholdTMP<-8.5*sort(currentSpectrumOriginal)[
+		thresholdTMP<-7.5*sort(currentSpectrumOriginal)[
 		  length(currentSpectrumOriginal)*.74]
 		#while(sum(currentSpectrumOriginal>thresholdTMP)>1000){
 		#	thresholdTMP<-thresholdTMP*2
@@ -7757,7 +7785,7 @@ plotMultiNMR<-function(region=NULL,rectangleRegions=NULL,
 			#thresholdTMP<-sort(currentSpectrumOriginal)[length(currentSpectrumOriginal)*.49]+
 			#	8.5*abs(sort(currentSpectrumOriginal)[length(currentSpectrumOriginal)*.49]-
 			#	sort(currentSpectrumOriginal)[length(currentSpectrumOriginal)*.74])
-			thresholdTMP<-8.5*sort(currentSpectrumOriginal)[
+			thresholdTMP<-7.5*sort(currentSpectrumOriginal)[
 			  length(currentSpectrumOriginal)*.74]
 			#while(sum(currentSpectrumOriginal>thresholdTMP)>1000){
 			#	thresholdTMP<-thresholdTMP*2
@@ -7915,6 +7943,7 @@ plotMultiNMR<-function(region=NULL,rectangleRegions=NULL,
 #' @param lwd Line width, defaults to 1
 #' @param plotTitle Plot title, defaults to "" (empty)
 #' @param showNames Display list of spectrum titles in plot, defaults to "Spectrum titles". Other options are "" and "Folder names"
+#' @param graphics Controls whether pop-up windows are shown for selections. Defaults to TRUE.
 #' @param ... Additional graphical parameters that will be passed to the functions plot, lines, and/or contour 
 #' @return {None}
 #' @export
@@ -7928,7 +7957,8 @@ plotMultiNMR<-function(region=NULL,rectangleRegions=NULL,
 #'        intensity1D=32,hideMenu=TRUE)
 
 mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
-  zoom=NULL,color=NULL,background=NULL,lwd=1,plotTitle="",showNames="Spectrum titles",...){
+  zoom=NULL,color=NULL,background=NULL,lwd=1,plotTitle="",showNames="Spectrum titles",
+  graphics= TRUE,...){
   mrbin.env$mrbinTMP$currentSpectrumOriginal<-NULL
   region<-NULL
   commandHistory<-NULL
@@ -8060,7 +8090,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
 	  if(!hideMenu){
         menuItem<-utils::select.list(menuList,
                    preselect=currentItem,
-                   title ="Bin size [ppm]: ",graphics=TRUE)
+                   title ="Bin size [ppm]: ",graphics=graphics)
       } else {
 	    menuItem<-""
 		stopTMP<-TRUE
@@ -8081,13 +8111,13 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
 					   "Show/hide spectrum titles",
                        "Add additional parameters"),
                        preselect="Change background color",
-                       title ="Please select",graphics=TRUE)
+                       title ="Please select",graphics=graphics)
 					   
             if(menuItem2=="Show/hide spectrum titles"){
 				menuItem3<-utils::select.list(c("Hide",
                        "Spectrum titles","Folder names"),
                        preselect="Hide",
-                       title ="Please select",graphics=TRUE)
+                       title ="Please select",graphics=graphics)
 				if(!menuItem3==""){
 				  if(menuItem3=="Hide"){
 				    showNames<-""
@@ -8104,7 +8134,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
 				menuItem3<-utils::select.list(c("None (equals white)",
                        "black","gray","User defined..."),
                        preselect="None (equals white)",
-                       title ="Please select",graphics=TRUE)
+                       title ="Please select",graphics=graphics)
 				if(!menuItem3==""){
 				    if(menuItem3=="User defined..."){
  					  menuItem4<-readline(prompt=paste("New background color, press enter to keep current: ",sep=""))
@@ -8131,7 +8161,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
 			  listNamesColorTMP<-paste(1:length(color),color)
 			  menuItem3<-utils::select.list(listNamesColorTMP,
                        #preselect="Add new parameter",
-                       title ="Please select",graphics=TRUE)
+                       title ="Please select",graphics=graphics)
 			  if(menuItem3%in%listNamesColorTMP){
 			    menuItem4<-readline(prompt=paste("Enter new color, press enter to keep current: ",sep=""))
 				if(!menuItem4==""){
@@ -8157,7 +8187,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
 			  if(length(dotdotdot)>0){
 			    menuItem3<-utils::select.list(c("Add new parameter","Remove current parameter"),
                        preselect="Add new parameter",
-                       title ="Please select",graphics=TRUE)
+                       title ="Please select",graphics=graphics)
 			  }
 			  if(menuItem3=="Add new parameter"){
 			    menuItem4<-readline(prompt=paste("New parameter name (e.g. cex), press enter to cancel: ",sep=""))
@@ -8175,7 +8205,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
 			  if(menuItem3=="Remove current parameter"){
 				menuItem4<-utils::select.list(names(dotdotdot),
                        #preselect="",
-                       title ="Please select parameter to be removed",graphics=TRUE)
+                       title ="Please select parameter to be removed",graphics=graphics)
 				if(!menuItem4==""){
 				  dotdotdot<-dotdotdot[!(names(dotdotdot)==menuItem4)]
 				}
@@ -8315,7 +8345,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
             menuItem3<-utils::select.list(c("Scale or offset 1D spectra",
                        "Scale or offset 2D spectra"),
                        preselect="Scale or offset 1D spectra",
-                       title ="Please select",graphics=TRUE)
+                       title ="Please select",graphics=graphics)
           } else {
             if(TMP1D) menuItem3<-"Scale or offset 1D spectra"
             if(TMP2D) menuItem3<-"Scale or offset 2D spectra"
@@ -8325,7 +8355,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
             menuItem4<-utils::select.list(
               mrbin.env$mrbinTMP$additionalPlots1DMetadata[,5],
                      #preselect="Remove 1D spectra",
-                     title ="Select spectrum",graphics=TRUE)
+                     title ="Select spectrum",graphics=graphics)
             if(!(length(menuItem4)==0|menuItem4=="")){
               scaleTMP<-readline(prompt=paste("New scaling factor, press enter to keep ",
                                       mrbin.env$mrbinTMP$additionalPlots1DMetadata[
@@ -8349,7 +8379,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
             is.null(mrbin.env$mrbinTMP$additionalPlots2D)){
             menuItem4<-utils::select.list(
               mrbin.env$mrbinTMP$additionalPlots2DMetadata[,5],
-                     title ="Select spectrum",graphics=TRUE)
+                     title ="Select spectrum",graphics=graphics)
             if(!(length(menuItem4)==0|menuItem4=="")){
               scaleTMP<-readline(prompt=paste("New scaling factor, press enter to keep ",
                                       mrbin.env$mrbinTMP$additionalPlots2DMetadata[
@@ -8375,11 +8405,11 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
         menuItem2<-utils::select.list(c("Add 1D spectra","Add 2D spectra",
           "Remove spectra"),
                      preselect="Add 1D spectra",
-                     title ="Please select",graphics=TRUE)
+                     title ="Please select",graphics=graphics)
           if(menuItem2=="Add 1D spectra") mrbin.env$mrbin$parameters$dimension<-"1D"
           if(menuItem2=="Add 2D spectra") mrbin.env$mrbin$parameters$dimension<-"2D"
 		  if(menuItem2=="Add 2D spectra"|menuItem2=="Add 1D spectra"){
-            foldersTMP<-selectFolders()
+            foldersTMP<-selectFolders(graphics=graphics)
             if(!foldersTMP=="stop"&length(mrbin.env$mrbin$parameters$NMRfolders)>0){
               for(iFolders in 1:length(mrbin.env$mrbin$parameters$NMRfolders)){
                 addToPlot(folder=mrbin.env$mrbin$parameters$NMRfolders[iFolders]
@@ -8394,7 +8424,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
           menuItem3<-utils::select.list(c("Remove 1D spectra",
                      "Remove 2D spectra"),
                      preselect="Remove 1D spectra",
-                     title ="Please select",graphics=TRUE)
+                     title ="Please select",graphics=graphics)
           } else {
             if(TMP1D) menuItem3<-"Remove 1D spectra"
             if(TMP2D) menuItem3<-"Remove 2D spectra"
@@ -8404,7 +8434,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
             menuItem4<-utils::select.list(
               mrbin.env$mrbinTMP$additionalPlots1DMetadata[,5],
                      #preselect="Remove 1D spectra",
-                     title ="Remove spectrum",graphics=TRUE,multiple =TRUE)
+                     title ="Remove spectrum",graphics=graphics,multiple =TRUE)
             if(!(length(menuItem4)==0)){
               for(iRemove in menuItem4) if(!iRemove==""){removeFromPlot(folder=iRemove, dimension="1D")}
             }
@@ -8414,7 +8444,7 @@ mrplot<-function(hideMenu=FALSE,folders=NULL,dimensions=NULL,intensity1D=NULL,
             menuItem4<-utils::select.list(
               mrbin.env$mrbinTMP$additionalPlots2DMetadata[,5],
                      #preselect="Remove 1D spectra",
-                     title ="Remove spectrum",graphics=TRUE,multiple =TRUE)
+                     title ="Remove spectrum",graphics=graphics,multiple =TRUE)
             if(!(length(menuItem4)==0)){
               for(iRemove in menuItem4) if(!iRemove==""){removeFromPlot(folder=iRemove,dimension="2D")}
             }

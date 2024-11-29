@@ -8,7 +8,8 @@ setDilutionFactors(
   mrbinObject,
   dilutionFactors = NULL,
   errorsAsWarnings = FALSE,
-  alwaysShowOptionKeep = FALSE
+  alwaysShowOptionKeep = FALSE,
+  graphics = TRUE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ setDilutionFactors(
 \item{errorsAsWarnings}{If TRUE, errors will be turned into warnings. Should be used with care, as errors indicate undocumented changes to the data.}
 
 \item{alwaysShowOptionKeep}{If TRUE, you will be asked to keep current values even if they do not match the current dataset.}
+
+\item{graphics}{Controls whether pop-up windows are shown for selections. Defaults to TRUE.}
 }
 \value{
 An invisible mrbin object

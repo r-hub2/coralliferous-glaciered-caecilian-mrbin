@@ -15,6 +15,7 @@ mrplot(
   lwd = 1,
   plotTitle = "",
   showNames = "Spectrum titles",
+  graphics = TRUE,
   ...
 )
 }
@@ -38,6 +39,8 @@ mrplot(
 \item{plotTitle}{Plot title, defaults to "" (empty)}
 
 \item{showNames}{Display list of spectrum titles in plot, defaults to "Spectrum titles". Other options are "" and "Folder names"}
+
+\item{graphics}{Controls whether pop-up windows are shown for selections. Defaults to TRUE.}
 
 \item{...}{Additional graphical parameters that will be passed to the functions plot, lines, and/or contour}
 }
